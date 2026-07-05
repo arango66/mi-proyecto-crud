@@ -36,8 +36,8 @@
     <ul id="lista-usuarios"></ul>
 
     <script>
-        // Apuntando al servidor local
-        const URL_API = "http://localhost:3000/usuarios"; 
+        // URL dinámica: funciona tanto en local como en la nube
+        const URL_API = "/usuarios"; 
         
         const form = document.getElementById('usuario-form');
         const listaUsuarios = document.getElementById('lista-usuarios');
@@ -50,61 +50,41 @@
         document.addEventListener('DOMContentLoaded', obtenerUsuarios);
 
         async function obtenerUsuarios() {
-            try {
-                const res = await fetch(URL_API);
-                const usuarios = await res.json();
-                listaUsuarios.innerHTML = '';
-                usuarios.forEach(user => {
-                    const li = document.createElement('li');
-                    li.innerHTML = `
-                        <div><strong>${user.nombre}</strong> (${user.email})</div>
-                        <div>
-                            <button class="btn-edit" onclick="prepararEditar(${user.id}, '${user.nombre}', '${user.email}')">Editar</button>
-                            <button class="btn-delete" onclick="eliminarUsuario(${user.id})">Eliminar</button>
-                        </div>
-                    `;
-                    listaUsuarios.appendChild(li);
-                });
-            } catch (err) {
-                console.error("Error al obtener usuarios:", err);
-            }
+            const res = await fetch(URL_API);
+            const usuarios = await res.json();
+            listaUsuarios.innerHTML = '';
+            usuarios.forEach(user => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <div><strong>${user.nombre}</strong> (${user.email})</div>
+                    <div>
+                        <button class="btn-edit" onclick="prepararEditar(${user.id}, '${user.nombre}', '${user.email}')">Editar</button>
+                        <button class="btn-delete" onclick="eliminarUsuario(${user.id})">Eliminar</button>
+                    </div>
+                `;
+                listaUsuarios.appendChild(li);
+            });
         }
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             const id = usuarioIdInput.value;
             const datos = { nombre: nombreInput.value, email: emailInput.value };
-
-            try {
-                if (id) {
-                    await fetch(`${URL_API}/${id}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(datos)
-                    });
-                } else {
-                    await fetch(URL_API, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(datos)
-                    });
-                }
-                form.reset();
-                resetearFormulario();
-                obtenerUsuarios();
-            } catch (err) {
-                console.error("Error al guardar usuario:", err);
-            }
+            
+            await fetch(id ? `${URL_API}/${id}` : URL_API, {
+                method: id ? 'PUT' : 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(datos)
+            });
+            form.reset();
+            resetearFormulario();
+            obtenerUsuarios();
         });
 
         async function eliminarUsuario(id) {
-            if (confirm("¿Seguro que deseas eliminar este usuario?")) {
-                try {
-                    await fetch(`${URL_API}/${id}`, { method: 'DELETE' });
-                    obtenerUsuarios();
-                } catch (err) {
-                    console.error("Error al eliminar usuario:", err);
-                }
+            if (confirm("¿Eliminar usuario?")) {
+                await fetch(`${URL_API}/${id}`, { method: 'DELETE' });
+                obtenerUsuarios();
             }
         }
 
