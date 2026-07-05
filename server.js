@@ -10,13 +10,9 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// CONFIGURACIÓN DE CONEXIÓN LOCAL FIJA (¡Con tu puerto real 3333!)
+// CONFIGURACIÓN DINÁMICA: Usa Render en producción o tu localhost en casa
 const pool = new Pool({
-    user: 'postgres',
-    password: '123456',
-    host: 'localhost',
-    port: 3333, // El puerto real donde escucha tu PostgreSQL local
-    database: 'crud_db', // Tu base de datos local
+    connectionString: process.env.DATABASE_URL || 'postgresql://postgres:123456@localhost:3333/crud_db'
 });
 
 // Crear la tabla si no existe al iniciar el servidor
