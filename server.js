@@ -1,4 +1,4 @@
-require('dotenv').config(); // Intenta cargar el archivo .env si está disponible
+require('dotenv').config(); 
 const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
@@ -7,20 +7,22 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middlewares
+// Middlewares básicos
 app.use(cors());
 app.use(express.json());
 
-// SERVIR ARCHIVOS ESTÁTICOS DEL FRONTEND
-// Esto le dice a Express que busque el index.html en la carpeta 'public'
+// 1. CONFIGURACIÓN DE ARCHIVOS ESTÁTICOS
+// Intenta servir desde la raíz del proyecto o desde carpetas comunes (public/frontend)
+app.use(express.static(path.join(__dirname)));
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'frontend')));
 
-// CONFIGURACIÓN DINÁMICA: Usa Render en producción o tu localhost en casa
+// CONFIGURACIÓN DE BASE DE DATOS (Render o Local)
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL || 'postgresql://postgres:123456@localhost:3333/crud_db'
 });
 
-// Crear la tabla si no existe al iniciar el servidor
+// Inicializar tabla si no existe
 const initDb = async () => {
     try {
         await pool.query(`
@@ -30,14 +32,16 @@ const initDb = async () => {
                 email VARCHAR(100) UNIQUE NOT NULL
             );
         `);
-        console.log("Tabla 'usuarios' verificada/creada con éxito.");
+        console.log("Tabla 'usuarios' verificada.");
     } catch (err) {
-        console.error("Error al crear la tabla:", err);
+        console.error("Error base de datos:", err);
     }
 };
 initDb();
 
-// 1. LEER (GET) - Obtener todos los usuarios
+// ================= RUTAS DE LA API =================
+
+// Obtener usuarios
 app.get('/usuarios', async (req, res) => {
     try {
         const resultado = await pool.query('SELECT * FROM usuarios ORDER BY id ASC');
@@ -47,7 +51,7 @@ app.get('/usuarios', async (req, res) => {
     }
 });
 
-// 2. CREAR (POST) - Añadir un nuevo usuario
+// Crear usuario
 app.post('/usuarios', async (req, res) => {
     const { nombre, email } = req.body;
     try {
@@ -61,7 +65,7 @@ app.post('/usuarios', async (req, res) => {
     }
 });
 
-// 3. ACTUALIZAR (PUT) - Editar un usuario por ID
+// Actualizar usuario
 app.put('/usuarios/:id', async (req, res) => {
     const { id } = req.params;
     const { nombre, email } = req.body;
@@ -76,7 +80,7 @@ app.put('/usuarios/:id', async (req, res) => {
     }
 });
 
-// 4. ELIMINAR (DELETE) - Borrar un usuario por ID
+// Eliminar usuario
 app.delete('/usuarios/:id', async (req, res) => {
     const { id } = req.params;
     try {
@@ -87,13 +91,25 @@ app.delete('/usuarios/:id', async (req, res) => {
     }
 });
 
-// RESPALDAR EL FRONTEND EN CUALQUIER OTRA RUTA
-// Si alguien recarga la página en una ruta interna, le sirve el index.html
+// ================= MANEJO DEL FRONTEND =================
+
+// Si entra a la raíz o cualquier otra ruta que no sea la API, le manda el index.html
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    // Busca el index en la raíz
+    res.sendFile(path.join(__dirname, 'index.html'), (err) => {
+        if (err) {
+            // Si no está en la raíz, lo busca en 'public'
+            res.sendFile(path.join(__dirname, 'public', 'index.html'), (err2) => {
+                if (err2) {
+                    // Si no, lo busca en 'frontend'
+                    res.sendFile(path.join(__dirname, 'frontend', 'index.html'));
+                }
+            });
+        }
+    });
 });
 
-// Iniciar servidor
+// Levantar servidor
 app.listen(PORT, () => {
-    console.log(`Servidor backend corriendo en el puerto ${PORT}`);
+    console.log(`Servidor corriendo en el puerto ${PORT}`);
 });
