@@ -2,6 +2,7 @@ require('dotenv').config(); // Intenta cargar el archivo .env si está disponibl
 const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
+const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -9,6 +10,10 @@ const PORT = process.env.PORT || 3000;
 // Middlewares
 app.use(cors());
 app.use(express.json());
+
+// SERVIR ARCHIVOS ESTÁTICOS DEL FRONTEND
+// Esto le dice a Express que busque el index.html en la carpeta 'public'
+app.use(express.static(path.join(__dirname, 'public')));
 
 // CONFIGURACIÓN DINÁMICA: Usa Render en producción o tu localhost en casa
 const pool = new Pool({
@@ -80,6 +85,12 @@ app.delete('/usuarios/:id', async (req, res) => {
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
+});
+
+// RESPALDAR EL FRONTEND EN CUALQUIER OTRA RUTA
+// Si alguien recarga la página en una ruta interna, le sirve el index.html
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // Iniciar servidor
